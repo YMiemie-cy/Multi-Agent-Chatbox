@@ -120,25 +120,6 @@ python scripts/setup.py
 
 完整的部署步骤和配置说明，请查看 [DEPLOY.md](DEPLOY.md)
 
-#### 🎯 快速参考
-
-| 文档 | 描述 | 适用场景 |
-|------|------|----------|
-| [QUICK_START_DEPLOY.md](QUICK_START_DEPLOY.md) | ⚡ 3步快速部署 | 首次部署，急于上线 |
-| [DEPLOY.md](DEPLOY.md) | 📖 完整部署指南 | 详细步骤，故障排查 |
-| [PRE_DEPLOY_CHECKLIST.md](PRE_DEPLOY_CHECKLIST.md) | ✅ 部署前检查清单 | 确保万无一失 |
-| [COMMANDS.md](COMMANDS.md) | 📌 常用命令速查 | 日常开发运维 |
-
-#### 🛠️ 辅助工具
-
-```bash
-# 自动检查部署准备情况
-python scripts/check_deploy.py
-
-# 一键推送到 GitHub
-./push_to_github.sh
-```
-
 ### 其他云平台
 
 您也可以部署到其他平台：
@@ -164,11 +145,7 @@ Multi-Agent-chatbox/
 │   ├── render.yaml             # Render.com Blueprint配置
 │   ├── build.sh                # 构建脚本
 │   ├── start.sh                # 启动脚本
-│   ├── push_to_github.sh       # GitHub推送脚本
-│   ├── .renderignore           # Render部署忽略文件
-│   ├── QUICK_START_DEPLOY.md   # 快速部署指南
-│   ├── PRE_DEPLOY_CHECKLIST.md # 部署前检查清单
-│   └── COMMANDS.md             # 常用命令速查
+│   └── .renderignore           # Render部署忽略文件
 │
 ├── 🗂️ 代码模块
 │   ├── models/                 # 数据模型
@@ -188,8 +165,7 @@ Multi-Agent-chatbox/
 ├── 🛠️ 工具脚本
 │   └── scripts/                # 管理脚本
 │       ├── setup.py            # 项目设置脚本
-│       ├── cleanup.py          # 清理脚本
-│       └── check_deploy.py     # 部署检查脚本
+│       └── cleanup.py          # 清理脚本
 │
 └── 📦 数据目录
     ├── uploads/                # 用户上传文件
