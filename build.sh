@@ -19,8 +19,20 @@ LOG_DIR=${LOG_DIR:-logs}
 SESSIONS_FILE=${SESSIONS_FILE:-chat_sessions.json}
 MEMORIES_FILE=${MEMORIES_FILE:-memories.json}
 
-# 创建必要的目录
+# 调试：显示环境变量值
 echo "📁 创建必要的目录..."
+echo "UPLOAD_DIR: $UPLOAD_DIR"
+echo "LOG_DIR: $LOG_DIR"
+
+# 确保使用相对路径
+if [[ "$UPLOAD_DIR" == /* ]]; then
+    echo "⚠️  检测到绝对路径，改用相对路径"
+    UPLOAD_DIR="uploads"
+    LOG_DIR="logs"
+    SESSIONS_FILE="chat_sessions.json"
+    MEMORIES_FILE="memories.json"
+fi
+
 mkdir -p "$UPLOAD_DIR"
 mkdir -p "$LOG_DIR"
 echo "✅ 创建目录: $UPLOAD_DIR, $LOG_DIR"
