@@ -13,22 +13,29 @@ pip install --upgrade pip
 echo "📦 安装 Python 依赖..."
 pip install -r requirements.txt
 
+# 获取环境变量（如果没有设置则使用默认值）
+UPLOAD_DIR=${UPLOAD_DIR:-uploads}
+LOG_DIR=${LOG_DIR:-logs}
+SESSIONS_FILE=${SESSIONS_FILE:-chat_sessions.json}
+MEMORIES_FILE=${MEMORIES_FILE:-memories.json}
+
 # 创建必要的目录
 echo "📁 创建必要的目录..."
-mkdir -p uploads
-mkdir -p logs
+mkdir -p "$UPLOAD_DIR"
+mkdir -p "$LOG_DIR"
+echo "✅ 创建目录: $UPLOAD_DIR, $LOG_DIR"
 
 # 初始化数据文件（如果不存在）
 echo "📝 初始化数据文件..."
 
-if [ ! -f "chat_sessions.json" ]; then
-    echo "[]" > chat_sessions.json
-    echo "✅ 创建 chat_sessions.json"
+if [ ! -f "$SESSIONS_FILE" ]; then
+    echo "[]" > "$SESSIONS_FILE"
+    echo "✅ 创建 $SESSIONS_FILE"
 fi
 
-if [ ! -f "memories.json" ]; then
-    echo "[]" > memories.json
-    echo "✅ 创建 memories.json"
+if [ ! -f "$MEMORIES_FILE" ]; then
+    echo "[]" > "$MEMORIES_FILE"
+    echo "✅ 创建 $MEMORIES_FILE"
 fi
 
 echo "✅ 构建完成！"

@@ -46,13 +46,13 @@ services:
       - key: RATE_LIMIT_WINDOW
         value: 60
       - key: UPLOAD_DIR
-        value: /var/data/uploads
+        value: uploads
       - key: LOG_DIR
-        value: /var/data/logs
+        value: logs
       - key: SESSIONS_FILE
-        value: /var/data/chat_sessions.json
+        value: chat_sessions.json
       - key: MEMORIES_FILE
-        value: /var/data/memories.json
+        value: memories.json
     
     # 持久化磁盘（免费版不支持，升级到付费版后取消注释）
     # disk:
