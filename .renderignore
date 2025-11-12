@@ -1,0 +1,52 @@
+# Render 部署时忽略的文件
+
+# 开发环境
+venv/
+env/
+.venv/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 测试和覆盖率
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# 日志（会在服务器上重新生成）
+logs/
+*.log
+
+# 用户数据（会在服务器上初始化）
+uploads/*
+chat_sessions.json
+memories.json
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# 文档（可选，如果想减小部署大小可以忽略）
+# README.md
+# DEPLOY.md
+
+# 其他
+.env
+.env.local
+*.db
+*.sqlite
+*.sqlite3
+

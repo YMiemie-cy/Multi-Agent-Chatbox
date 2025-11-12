@@ -1,0 +1,93 @@
+# Render Blueprint Configuration
+# 文档: https://render.com/docs/blueprint-spec
+
+services:
+  # Web Service - FastAPI 应用
+  - type: web
+    name: multi-agent-chatbox
+    runtime: python
+    plan: free  # 可选: free, starter, standard, pro
+    region: oregon  # 可选: oregon, frankfurt, singapore
+    branch: main  # 部署的 Git 分支
+    
+    # 构建配置
+    buildCommand: ./build.sh
+    
+    # 启动命令
+    startCommand: ./start.sh
+    
+    # 健康检查
+    healthCheckPath: /api/health
+    
+    # 环境变量（敏感信息从 Render Dashboard 设置）
+    envVars:
+      - key: POE_API_KEY
+        sync: false  # 需要在 Render Dashboard 手动设置
+      - key: POE_BASE_URL
+        value: https://api.poe.com/v1
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8000
+      - key: DEBUG
+        value: false
+      - key: PYTHON_VERSION
+        value: 3.13.0
+      - key: DEFAULT_MAX_TOKENS
+        value: 4000
+      - key: DEFAULT_TEMPERATURE
+        value: 0.3
+      - key: MAX_RETRIES
+        value: 3
+      - key: RETRY_DELAY
+        value: 2.0
+      - key: RATE_LIMIT_REQUESTS
+        value: 100
+      - key: RATE_LIMIT_WINDOW
+        value: 60
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
+      - key: LOG_DIR
+        value: /var/data/logs
+      - key: SESSIONS_FILE
+        value: /var/data/chat_sessions.json
+      - key: MEMORIES_FILE
+        value: /var/data/memories.json
+    
+    # 持久化磁盘（免费版不支持，升级到付费版后取消注释）
+    # disk:
+    #   name: multi-agent-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
+    
+    # 自动部署配置
+    autoDeploy: true  # Git push 时自动部署
+    
+    # 服务发现
+    domains:
+      - multi-agent-chatbox.onrender.com  # 自动生成的域名
+
+# 持久化磁盘配置（付费版功能）
+# disks:
+#   - name: multi-agent-data
+#     sizeGB: 1
+#     mountPath: /var/data
+
+# 注意事项：
+# 1. 免费版限制：
+#    - 服务在15分钟无活动后会自动休眠
+#    - 不支持持久化磁盘（文件上传和会话数据会在重启后丢失）
+#    - 每月750小时免费运行时间
+# 
+# 2. 部署后需要在 Render Dashboard 设置：
+#    - POE_API_KEY（必须）
+#    - 如果需要自定义域名，在 Settings > Custom Domains 添加
+# 
+# 3. 如果需要持久化存储，建议：
+#    - 升级到付费版（$7/月起）启用持久化磁盘
+#    - 或集成云存储（AWS S3, Cloudflare R2 等）
+# 
+# 4. 查看日志：
+#    - Render Dashboard > Logs 标签页
+#    - 或使用 Render CLI: render logs
+

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#2b2d37">
+    <title>Multi-Agent 智能助手</title>
+    <link rel="stylesheet" href="/static/style.css?v=6.3">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Markdown渲染库 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.2/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧会话历史 -->
+        <div class="sidebar-left">
+            <button class="sidebar-close-btn" id="sidebar-left-close" title="关闭">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="sidebar-header">
+                <h2><i class="fas fa-comments"></i> 会话历史</h2>
+                <button id="new-chat-btn" class="new-chat-btn">
+                    <i class="fas fa-plus"></i> 新建对话
+                </button>
+            </div>
+            <div class="sessions-list" id="sessions-list">
+                <!-- 会话列表将在这里动态加载 -->
+            </div>
+        </div>
+
+        <!-- 侧边栏遮罩层 (移动端) -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        
+        <!-- 主聊天区域 -->
+        <div class="chat-main">
+            <div class="chat-header">
+                <button class="mobile-menu-btn" id="mobile-menu-left" title="会话历史">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-title">
+                    <h1>Multi-Agent 智能助手</h1>
+                    <p>选择不同的专业角色来获得多维度的专业建议</p>
+                </div>
+                <button class="mobile-menu-btn" id="mobile-menu-right" title="专业团队">
+                    <i class="fas fa-users"></i>
+                </button>
+            </div>
+            
+            <div class="chat-container">
+                <div class="messages-container" id="messages-container">
+                    <div class="welcome-message">
+                        <div class="welcome-content">
+                            <i class="fas fa-robot"></i>
+                            <h3>欢迎使用Multi-Agent智能助手</h3>
+                            <p>在右侧选择专业角色，或在消息中使用 @ 提及特定专家来获得专业建议</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <!-- 文件附件预览区域 - 移到输入框上方 -->
+                        <div class="file-attachments" id="file-attachments" style="display: none;">
+                            <!-- 已上传的文件将显示在这里 -->
+                        </div>
+                        
+                        <div class="input-section">
+                            <textarea 
+                                id="message-input" 
+                                placeholder="输入您的问题...（可以使用@产品经理 来指定特定角色回答）"
+                                rows="1"
+                            ></textarea>
+                            
+                            <!-- 按钮组 - 在输入框内部右侧 -->
+                            <div class="input-buttons">
+                                <button id="file-upload-btn" class="file-upload-btn" title="上传文件">
+                                    <i class="fas fa-paperclip"></i>
+                                </button>
+                                <button id="discussion-btn" class="discussion-btn" title="开始多智能体讨论">
+                                    <i class="fas fa-users"></i>
+                                </button>
+                                <button id="send-btn" class="send-btn">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- @提及下拉菜单 -->
+                            <div class="mention-dropdown" id="mention-dropdown" style="display: none;">
+                                <!-- Agent选项将动态生成 -->
+                            </div>
+                        </div>
+                        
+                        <input type="file" id="file-input" accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg" multiple style="display: none;">
+                    </div>
+                    
+                    <!-- 讨论设置面板 -->
+                    <div class="discussion-panel" id="discussion-panel" style="display: none;">
+                        <div class="discussion-panel-content">
+                            <div class="panel-header">
+                                <h3><i class="fas fa-users-cog"></i> 多智能体讨论设置</h3>
+                                <button class="panel-close" id="close-discussion-panel">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="panel-content">
+                            <!-- 讨论问题输入 -->
+                            <div class="setting-group">
+                                <label class="setting-label-block">
+                                    <i class="fas fa-question-circle"></i> 讨论问题：
+                                </label>
+                                <textarea 
+                                    id="discussion-question-input" 
+                                    placeholder="请输入您想要讨论的问题..."
+                                    rows="3"
+                                ></textarea>
+                            </div>
+
+                            <!-- 讨论文件上传 -->
+                            <div class="setting-group">
+                                <label class="setting-label-block">
+                                    <i class="fas fa-paperclip"></i> 讨论文档（可选）：
+                                </label>
+                                <div class="discussion-file-upload">
+                                    <button type="button" id="discussion-file-upload-btn" class="discussion-file-btn">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        上传文档
+                                    </button>
+                                    <input type="file" id="discussion-file-input" accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg" multiple style="display: none;">
+                                    <span class="file-hint">支持 PDF、Word、TXT、PNG、Markdown 文件 (最多6个文件，每个≤5MB)</span>
+                                </div>
+                                <!-- 已上传文件列表 -->
+                                <div class="discussion-file-attachments" id="discussion-file-attachments" style="display: none;">
+                                    <!-- 文件列表将在这里动态生成 -->
+                                </div>
+                            </div>
+
+                            <!-- 参与Agent选择 -->
+                            <div class="setting-group">
+                                <label class="setting-label-block">
+                                    <i class="fas fa-users"></i> 参与讨论的专家：
+                                </label>
+                                <div class="agents-selection" id="agents-selection">
+                                    <!-- 动态生成Agent选择项 -->
+                                </div>
+                                <div class="selection-actions">
+                                    <button type="button" class="select-all-btn" id="select-all-agents">全选</button>
+                                    <button type="button" class="select-none-btn" id="select-none-agents">全不选</button>
+                                </div>
+                            </div>
+
+                            <!-- 讨论设置 -->
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <i class="fas fa-redo"></i> 讨论轮次:
+                                    <select id="discussion-rounds">
+                                        <option value="2">2轮</option>
+                                        <option value="3" selected>3轮</option>
+                                        <option value="4">4轮</option>
+                                    </select>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <label class="setting-checkbox">
+                                    <input type="checkbox" id="include-summary" checked>
+                                    <span><i class="fas fa-file-alt"></i> 生成讨论总结</span>
+                                </label>
+                            </div>
+
+                            <div class="discussion-note">
+                                <p><i class="fas fa-info-circle"></i> 选择至少2位专家参与讨论，他们将基于您的问题进行多轮深入讨论</p>
+                            </div>
+                            
+                            <div class="panel-actions">
+                                <button class="start-discussion-btn" id="start-discussion-btn">
+                                    <i class="fas fa-rocket"></i>
+                                    开始讨论
+                                </button>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 模态遮罩 -->
+        <div class="modal-overlay" id="modal-overlay"></div>
+        
+        <!-- 讨论详情弹窗 -->
+        <div class="discussion-details-modal" id="discussion-details-modal" style="display: none;">
+            <div class="discussion-details-wrapper">
+                <div class="discussion-details-header">
+                    <h3><i class="fas fa-comments"></i> 讨论详情</h3>
+                    <button class="modal-close-btn" id="close-discussion-details">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="discussion-details-content" id="discussion-details-content">
+                    <!-- 讨论内容将在这里动态加载 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧Agent列表 -->
+        <div class="sidebar-right">
+            <button class="sidebar-close-btn" id="sidebar-right-close" title="关闭">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="sidebar-header">
+                <h2><i class="fas fa-users"></i> 专业团队</h2>
+                <button id="memory-btn" class="memory-btn" title="长期记忆管理">
+                    <i class="fas fa-brain"></i>
+                </button>
+            </div>
+            <div class="agents-list" id="agents-list">
+                <!-- Agent列表将在这里动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 拖拽上传覆盖层 -->
+    <div class="drag-overlay" id="drag-overlay">
+        <div class="drag-content">
+            <div class="drag-icon">📁</div>
+            <div class="drag-text">拖拽文件到此处</div>
+            <div class="drag-subtext">支持 PDF、Word、TXT、PNG、Markdown 文件</div>
+        </div>
+    </div>
+
+    <!-- 图片查看模态框 -->
+    <div class="image-modal" id="image-modal">
+        <span class="image-modal-close" id="image-modal-close">&times;</span>
+        <img class="image-modal-content" id="image-modal-img">
+    </div>
+
+    <!-- 长期记忆管理模态框 -->
+    <div class="memory-modal" id="memory-modal" style="display: none;">
+        <div class="memory-modal-content">
+            <div class="memory-modal-header">
+                <h2><i class="fas fa-brain"></i> 长期记忆管理</h2>
+                <button class="memory-modal-close" id="memory-modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="memory-modal-body">
+                <!-- 分类筛选和新建按钮 -->
+                <div class="memory-controls">
+                    <div class="memory-filters">
+                        <select id="memory-category-filter" class="memory-filter-select">
+                            <option value="">所有分类</option>
+                            <option value="general">通用</option>
+                            <option value="work">工作</option>
+                            <option value="personal">个人</option>
+                            <option value="knowledge">知识</option>
+                        </select>
+                    </div>
+                    <button id="add-memory-btn" class="add-memory-btn">
+                        <i class="fas fa-plus"></i> 新建记忆
+                    </button>
+                </div>
+                
+                <!-- 记忆列表 -->
+                <div class="memories-list" id="memories-list">
+                    <!-- 记忆卡片将在这里动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑/新建记忆模态框 -->
+    <div class="memory-edit-modal" id="memory-edit-modal" style="display: none;">
+        <div class="memory-edit-content">
+            <div class="memory-edit-header">
+                <h2 id="memory-edit-title">
+                    <i class="fas fa-edit"></i> <span id="memory-edit-title-text">新建记忆</span>
+                </h2>
+                <button class="memory-edit-close" id="memory-edit-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="memory-edit-body">
+                <form id="memory-form">
+                    <input type="hidden" id="memory-id" value="">
+                    
+                    <div class="form-group">
+                        <label for="memory-title-input">标题</label>
+                        <input type="text" id="memory-title-input" class="form-input" placeholder="记忆标题" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="memory-content-input">内容</label>
+                        <textarea id="memory-content-input" class="form-textarea" rows="6" placeholder="记忆内容" required></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="memory-category-input">分类</label>
+                            <select id="memory-category-input" class="form-select">
+                                <option value="general">通用</option>
+                                <option value="work">工作</option>
+                                <option value="personal">个人</option>
+                                <option value="knowledge">知识</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="memory-importance-input">重要程度</label>
+                            <select id="memory-importance-input" class="form-select">
+                                <option value="1">⭐</option>
+                                <option value="2">⭐⭐</option>
+                                <option value="3" selected>⭐⭐⭐</option>
+                                <option value="4">⭐⭐⭐⭐</option>
+                                <option value="5">⭐⭐⭐⭐⭐</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="memory-tags-input">标签（用逗号分隔）</label>
+                        <input type="text" id="memory-tags-input" class="form-input" placeholder="例如：工作,项目,重要">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" id="memory-cancel-btn">取消</button>
+                        <button type="submit" class="btn-save" id="memory-save-btn">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js?v=6.4"></script>
+</body>
+</html>
