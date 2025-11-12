@@ -105,13 +105,13 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 AGENTS = {
     "产品经理": {
         "name": "产品经理",
-        "model": "Claude-Sonnet-4",
+        "model": "Claude-Sonnet-4.5",
         "system_prompt": "你是一位资深的产品经理，具有10年以上的产品设计和管理经验。你擅长需求分析、用户体验设计、产品策略制定和市场分析。请从产品角度提供专业建议。",
         "color": "#4F46E5"
     },
     "技术总监": {
         "name": "技术总监",
-        "model": "Claude-Sonnet-4",
+        "model": "Claude-Sonnet-4.5",
         "system_prompt": "你是一位经验丰富的技术总监，精通软件架构设计、技术选型、团队管理和项目规划。请从技术可行性、架构设计、性能优化等角度提供专业意见。",
         "color": "#059669"
     },
@@ -123,13 +123,13 @@ AGENTS = {
     },
     "UX设计师": {
         "name": "UX设计师",
-        "model": "Claude-Sonnet-4",
+        "model": "Claude-Sonnet-4.5",
         "system_prompt": "你是一位资深的UX设计师，拥有10年以上的用户体验设计经验，精通用户研究、交互设计、信息架构、可用性测试和设计系统构建。请从用户体验的战略高度提供深度专业建议。",
         "color": "#7C3AED"
     },
     "商业分析师": {
         "name": "商业分析师", 
-        "model": "Claude-Sonnet-4",
+        "model": "Claude-Sonnet-4.5",
         "system_prompt": "你是一位资深的商业分析师，拥有12年以上的商业咨询和投资分析经验，精通商业模式构建、财务建模、风险量化评估和投资回报优化。请从商业价值创造的角度提供深度专业分析。",
         "color": "#EA580C"
     },
@@ -150,6 +150,24 @@ AGENTS = {
         "model": "Gemini-2.5-Pro",
         "system_prompt": "你是Gemini-2.5-Pro，Google最新的旗舰AI模型，拥有强大的多模态理解能力和超长上下文窗口。你擅长深度分析、创意思考和复杂问题解决。请提供准确、全面、有洞察力的回答。",
         "color": "#4285F4"
+    },
+    "Claude-Sonnet-4.5": {
+        "name": "Claude-Sonnet-4.5",
+        "model": "Claude-Sonnet-4.5",
+        "system_prompt": "你是Claude Sonnet 4.5，Anthropic最新的旗舰AI模型，具备卓越的推理能力、深度分析能力和创造性思维。你擅长复杂问题解决、逻辑推理、代码编写和深度对话。请提供准确、深入、有洞察力的回答。",
+        "color": "#A855F7"
+    },
+    "GPT-Image-1": {
+        "name": "GPT-Image-1",
+        "model": "GPT-Image-1",
+        "system_prompt": "你是GPT-Image-1，一个强大的图像生成模型。根据用户的描述，生成高质量、富有创意的图像。请仔细理解用户的需求，并生成符合要求的图像。",
+        "color": "#F59E0B"
+    },
+    "Perplexity-Sonar-Pro": {
+        "name": "Perplexity-Sonar-Pro",
+        "model": "Perplexity-Sonar-Pro",
+        "system_prompt": "你是Perplexity Sonar Pro，一个强大的AI搜索模型。你能够实时搜索互联网，获取最新信息，并提供准确、全面的搜索结果。你擅长网络搜索、实时信息查询、事实验证、新闻追踪和数据收集。请基于实时搜索结果提供最新、最准确的信息和分析。",
+        "color": "#06B6D4"
     },
 }
 

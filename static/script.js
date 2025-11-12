@@ -960,6 +960,27 @@ class MultiAgentChat {
         }
 
         container.appendChild(messageElement);
+        
+        // 为消息中的图片添加点击事件（放大查看）
+        const images = messageElement.querySelectorAll('.message-text img');
+        images.forEach(img => {
+            img.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showImageModal(img.src);
+            });
+            
+            // 添加图片加载错误处理
+            img.addEventListener('error', (e) => {
+                console.error('图片加载失败:', img.src);
+                img.alt = '❌ 图片加载失败';
+                img.style.display = 'none';
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'image-error';
+                errorMsg.textContent = '图片加载失败';
+                img.parentNode.insertBefore(errorMsg, img);
+            });
+        });
+        
         container.scrollTop = container.scrollHeight;
     }
 

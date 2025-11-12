@@ -512,6 +512,66 @@ body {
     box-shadow: var(--shadow-md), 0 0 15px var(--primary-glow);
 }
 
+/* 消息内图片样式 */
+.message-text img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    margin: 12px 0;
+    display: block;
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.message-text img:hover {
+    transform: scale(1.02);
+    box-shadow: var(--shadow-lg);
+}
+
+/* 生成的图片容器 */
+.generated-image {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.generated-image img {
+    max-width: 512px;
+    max-height: 512px;
+    object-fit: contain;
+}
+
+/* 图片加载状态 */
+.image-loading {
+    display: inline-block;
+    padding: 12px 20px;
+    background: var(--background-elevated);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.image-loading::before {
+    content: "⏳ ";
+    margin-right: 8px;
+}
+
+/* 图片加载错误 */
+.image-error {
+    display: inline-block;
+    padding: 12px 20px;
+    background: var(--error-bg);
+    border-radius: var(--radius-md);
+    color: var(--error-color);
+    font-size: 14px;
+}
+
+.image-error::before {
+    content: "❌ ";
+    margin-right: 8px;
+}
+
 /* ==================== 讨论进度条样式 ==================== */
 .discussion-progress-bar {
     background: var(--background-elevated);
