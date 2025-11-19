@@ -1459,55 +1459,63 @@ class MultiAgentChat {
                 buffer = lines.pop(); // 保留不完整的行
 
                 for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            
-                            if (data.type === 'metadata') {
-                                // 更新会话ID和Agent名称
-                                this.currentSessionId = data.session_id;
-                                streamMessage.agent_name = data.agent_name;
-                                
-                                // 更新头像
-                                const agent = this.agents[data.agent_name];
-                                if (agent) {
-                                    const avatarDiv = messageElement.querySelector('.message-avatar');
-                                    avatarDiv.textContent = agent.name.charAt(0);
-                                    avatarDiv.style.background = agent.color;
-                                    
-                                    const authorSpan = messageElement.querySelector('.message-author');
-                                    authorSpan.textContent = agent.name;
-                                }
-                            } else if (data.type === 'content') {
-                                // 累积内容并实时渲染
-                                accumulatedContent += data.content;
-                                streamMessage.content = accumulatedContent;
-                                
-                                // 使用流式 Markdown 渲染（轻量级）
-                                if (window.renderStreamingMarkdown) {
-                                    window.renderStreamingMarkdown(accumulatedContent, messageTextDiv);
-                                } else {
-                                    messageTextDiv.textContent = accumulatedContent;
-                                }
-                                
-                                // 保持滚动到底部
-                                this.scrollToBottom();
-                            } else if (data.type === 'done') {
-                                // 完成时使用完整的增强渲染
-                                if (window.renderEnhancedMarkdown) {
-                                    window.renderEnhancedMarkdown(accumulatedContent, messageTextDiv);
-                                }
-                                
-                                // 刷新会话列表
-                                await this.loadSessions();
-                                this.renderSessions();
-                            } else if (data.type === 'error') {
-                                console.error('流式输出错误:', data.error);
-                                messageTextDiv.innerHTML = `<div class="error-message">❌ 生成失败: ${data.error}</div>`;
-                            }
-                        } catch (e) {
-                            console.error('解析SSE数据失败:', e, line);
+                    if (!line.trim()) continue;
+                    
+                    try {
+                        // 兼容两种格式：SSE (data: {...}) 和 NDJSON ({...})
+                        let jsonStr = line;
+                        if (line.startsWith('data: ')) {
+                            jsonStr = line.slice(6);
                         }
+                        
+                        const data = JSON.parse(jsonStr);
+                        
+                        // 兼容两种元数据类型
+                        if (data.type === 'metadata' || data.type === 'meta') {
+                            // 更新会话ID和Agent名称
+                            this.currentSessionId = data.session_id;
+                            const agentName = data.agent_name || data.agent;
+                            streamMessage.agent_name = agentName;
+                            
+                            // 更新头像
+                            const agent = this.agents[agentName];
+                            if (agent) {
+                                const avatarDiv = messageElement.querySelector('.message-avatar');
+                                avatarDiv.textContent = agent.name.charAt(0);
+                                avatarDiv.style.background = agent.color;
+                                
+                                const authorSpan = messageElement.querySelector('.message-author');
+                                authorSpan.textContent = agent.name;
+                            }
+                        } else if (data.type === 'content') {
+                            // 累积内容并实时渲染
+                            accumulatedContent += data.content;
+                            streamMessage.content = accumulatedContent;
+                            
+                            // 使用流式 Markdown 渲染（轻量级）
+                            if (window.renderStreamingMarkdown) {
+                                window.renderStreamingMarkdown(accumulatedContent, messageTextDiv);
+                            } else {
+                                messageTextDiv.textContent = accumulatedContent;
+                            }
+                            
+                            // 保持滚动到底部
+                            this.scrollToBottom();
+                        } else if (data.type === 'done') {
+                            // 完成时使用完整的增强渲染
+                            if (window.renderEnhancedMarkdown) {
+                                window.renderEnhancedMarkdown(accumulatedContent, messageTextDiv);
+                            }
+                            
+                            // 刷新会话列表
+                            await this.loadSessions();
+                            this.renderSessions();
+                        } else if (data.type === 'error') {
+                            console.error('流式输出错误:', data.error);
+                            messageTextDiv.innerHTML = `<div class="error-message">❌ 生成失败: ${data.error}</div>`;
+                        }
+                    } catch (e) {
+                        console.error('解析流数据失败:', e, line);
                     }
                 }
             }
