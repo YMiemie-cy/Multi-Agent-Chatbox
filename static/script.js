@@ -1510,6 +1510,9 @@ class MultiAgentChat {
                         window.renderEnhancedMarkdown(accumulatedContent, messageTextDiv);
                     }
                     
+                    // 检测并渲染音频播放器
+                    this.renderAudioPlayer(messageTextDiv, accumulatedContent);
+                    
                     // 刷新会话列表（重要！确保新会话出现在左侧）
                     await this.loadSessions();
                     this.renderSessions();
@@ -1574,6 +1577,9 @@ class MultiAgentChat {
                             if (window.renderEnhancedMarkdown) {
                                 window.renderEnhancedMarkdown(accumulatedContent, messageTextDiv);
                             }
+                            
+                            // 检测并渲染音频播放器
+                            this.renderAudioPlayer(messageTextDiv, accumulatedContent);
                             
                             // 刷新会话列表
                             await this.loadSessions();
@@ -2391,6 +2397,63 @@ class MultiAgentChat {
         const container = document.getElementById('messages-container');
         if (container) {
             container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    // 检测并渲染音频播放器（用于流式输出完成后）
+    renderAudioPlayer(messageTextDiv, content) {
+        // 检测是否包含音频链接
+        const audioUrlMatch = content.match(/(https?:\/\/[^\s]+(?:audio|speech|sound|voice)[^\s]*)|https?:\/\/[^\s]+\.(mp3|wav|ogg|m4a|aac)/i);
+        const isAudioGeneration = content.includes('Generated Audio') || content.includes('Generating Audio');
+        
+        if (isAudioGeneration && audioUrlMatch) {
+            // 提取音频URL
+            let audioUrl = audioUrlMatch[0];
+            
+            // 如果URL前面有 "Generated Audio!" 等文本，也要提取
+            const fullMatch = content.match(/Generated\s+Audio[!:：\s]*((https?:\/\/[^\s]+))/i);
+            if (fullMatch) {
+                audioUrl = fullMatch[1];
+            }
+            
+            // 移除URL和相关文本，保留其他内容
+            const textWithoutUrl = content
+                .replace(/Generated\s+Audio[!:：\s]*/gi, '')
+                .replace(/Generating\s+Audio[^)]*\)/gi, '')
+                .replace(audioUrl, '')
+                .trim();
+            
+            // 清空并重新渲染
+            messageTextDiv.innerHTML = '';
+            
+            // 渲染文本部分（如果有）
+            if (textWithoutUrl && window.renderEnhancedMarkdown) {
+                window.renderEnhancedMarkdown(textWithoutUrl, messageTextDiv);
+            } else if (textWithoutUrl) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = this.formatContent(textWithoutUrl, 'agent');
+                messageTextDiv.appendChild(tempDiv);
+            }
+            
+            // 创建音频播放器
+            const audioPlayer = document.createElement('div');
+            audioPlayer.className = 'audio-player-container';
+            audioPlayer.innerHTML = `
+                <div class="audio-player">
+                    <div class="audio-icon">🎙️</div>
+                    <div class="audio-info">
+                        <div class="audio-title">生成的语音</div>
+                        <audio controls class="audio-element" preload="metadata">
+                            <source src="${audioUrl}" type="audio/mpeg">
+                            您的浏览器不支持音频播放。
+                        </audio>
+                    </div>
+                    <a href="${audioUrl}" download="hailuo-speech.mp3" class="audio-download" title="下载音频">
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>
+            `;
+            messageTextDiv.appendChild(audioPlayer);
         }
     }
 
