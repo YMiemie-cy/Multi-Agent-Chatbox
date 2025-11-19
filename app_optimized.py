@@ -192,6 +192,13 @@ AGENTS = {
 # 存储路径
 background_tasks_status = {}
 
+def clean_message_mentions(message: str) -> str:
+    """清理消息中的@提及，避免影响实际内容处理"""
+    import re
+    # 移除所有 @模型名 的提及（包括开头和中间的）
+    cleaned = re.sub(r'@[\w\-]+\s*', '', message)
+    return cleaned.strip()
+
 @app.middleware("http")
 async def request_middleware(request: Request, call_next):
     """请求中间件 - 记录指标"""
@@ -428,9 +435,12 @@ async def chat(request: Request, chat_request: ChatRequest):
         # 检查是否有图片文件
         has_images = any(f.get("image_base64") for f in processed_files)
         
+        # 清理消息中的@提及（用于实际发送给AI）
+        cleaned_message = clean_message_mentions(chat_request.message)
+        
         if has_images:
             # 使用多模态消息格式（支持图片）
-            content_parts = [{"type": "text", "text": chat_request.message}]
+            content_parts = [{"type": "text", "text": cleaned_message}]
             
             # 添加图片
             for file_info in processed_files:
@@ -467,7 +477,7 @@ async def chat(request: Request, chat_request: ChatRequest):
             app_logger.info(f"使用多模态消息格式，包含 {len([f for f in processed_files if f.get('image_base64')])} 张图片")
         else:
             # 纯文本消息格式
-            current_user_message = chat_request.message
+            current_user_message = cleaned_message
             if file_context:
                 current_user_message += file_context
                 app_logger.info(f"已添加 {len(processed_files)} 个文件到上下文")
@@ -635,7 +645,7 @@ async def chat_stream(request: Request, chat_request: ChatRequest):
         has_images = any(f.get("image_base64") for f in processed_files)
         
         if has_images:
-            content_parts = [{"type": "text", "text": chat_request.message}]
+            content_parts = [{"type": "text", "text": cleaned_message}]
             for file_info in processed_files:
                 if file_info.get("image_base64"):
                     image_data = file_info["image_base64"]
@@ -654,7 +664,7 @@ async def chat_stream(request: Request, chat_request: ChatRequest):
                     content_parts[0]["text"] += f"\n\n📄 文档: {filename}\n```\n{text}\n```"
             messages.append({"role": "user", "content": content_parts})
         else:
-            current_user_message = chat_request.message
+            current_user_message = cleaned_message
             if file_context:
                 current_user_message += file_context
             messages.append({"role": "user", "content": current_user_message})
@@ -818,7 +828,7 @@ async def chat_stream(request: Request, chat_request: ChatRequest):
         has_images = any(f.get("image_base64") for f in processed_files)
         
         if has_images:
-            content_parts = [{"type": "text", "text": chat_request.message}]
+            content_parts = [{"type": "text", "text": cleaned_message}]
             for file_info in processed_files:
                 if file_info.get("image_base64"):
                     image_data = file_info["image_base64"]
@@ -834,7 +844,7 @@ async def chat_stream(request: Request, chat_request: ChatRequest):
                     content_parts[0]["text"] += f"\n\n📄 文档: {filename}\n```\n{text}\n```"
             messages.append({"role": "user", "content": content_parts})
         else:
-            current_user_message = chat_request.message
+            current_user_message = cleaned_message
             if file_context:
                 current_user_message += file_context
             messages.append({"role": "user", "content": current_user_message})
