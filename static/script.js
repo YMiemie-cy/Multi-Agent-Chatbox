@@ -991,16 +991,27 @@ class MultiAgentChat {
         // 过滤thinking内容并使用增强的Markdown渲染
         let content = this.filterThinkingContent(message.content);
         
-        // 检测是否包含音频链接（Hailuo-Speech-02 的响应）
-        const audioUrlMatch = content.match(/https?:\/\/[^\s]+\.(mp3|wav|ogg|m4a|aac)/i);
-        const isAudioGeneration = message.agent_name === 'Hailuo-Speech-02' || content.includes('Generated Audio') || audioUrlMatch;
+        // 检测是否包含音频链接（更通用的匹配）
+        // 匹配包含 audio 关键字的链接，或者以音频扩展名结尾的链接
+        const audioUrlMatch = content.match(/(https?:\/\/[^\s]+(?:audio|speech|sound|voice)[^\s]*)|https?:\/\/[^\s]+\.(mp3|wav|ogg|m4a|aac)/i);
+        const isAudioGeneration = message.agent_name === 'Hailuo-Speech-02' || content.includes('Generated Audio') || content.includes('Generating Audio');
         
         if (isAudioGeneration && audioUrlMatch) {
-            // 提取音频URL
-            const audioUrl = audioUrlMatch[0];
+            // 提取音频URL（可能包含 "Generated Audio!" 前缀）
+            let audioUrl = audioUrlMatch[0];
             
-            // 移除URL，保留其他文本
-            const textWithoutUrl = content.replace(audioUrl, '').trim();
+            // 如果URL前面有 "Generated Audio!" 等文本，也要提取
+            const fullMatch = content.match(/Generated\s+Audio[!:：\s]*((https?:\/\/[^\s]+))/i);
+            if (fullMatch) {
+                audioUrl = fullMatch[1];
+            }
+            
+            // 移除URL和相关文本，保留其他内容
+            const textWithoutUrl = content
+                .replace(/Generated\s+Audio[!:：\s]*/gi, '')
+                .replace(/Generating\s+Audio[^)]*\)/gi, '')
+                .replace(audioUrl, '')
+                .trim();
             
             // 渲染文本部分（如果有）
             if (textWithoutUrl && window.renderEnhancedMarkdown) {
@@ -1017,12 +1028,12 @@ class MultiAgentChat {
                     <div class="audio-icon">🎙️</div>
                     <div class="audio-info">
                         <div class="audio-title">生成的语音</div>
-                        <audio controls class="audio-element">
+                        <audio controls class="audio-element" preload="metadata">
                             <source src="${audioUrl}" type="audio/mpeg">
                             您的浏览器不支持音频播放。
                         </audio>
                     </div>
-                    <a href="${audioUrl}" download class="audio-download" title="下载音频">
+                    <a href="${audioUrl}" download="hailuo-speech.mp3" class="audio-download" title="下载音频">
                         <i class="fas fa-download"></i>
                     </a>
                 </div>
