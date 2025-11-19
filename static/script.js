@@ -977,7 +977,7 @@ class MultiAgentChat {
 
         const timeSpan = document.createElement('span');
         timeSpan.className = 'message-time';
-        timeSpan.textContent = this.formatTime(message.timestamp);
+        timeSpan.textContent = formatTime(message.timestamp); // 使用全局函数
         headerDiv.appendChild(timeSpan);
 
         contentDiv.appendChild(headerDiv);
