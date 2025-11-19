@@ -991,12 +991,51 @@ class MultiAgentChat {
         // 过滤thinking内容并使用增强的Markdown渲染
         let content = this.filterThinkingContent(message.content);
         
-        // 使用增强的 Markdown 渲染（支持代码高亮、数学公式、Mermaid）
-        if (window.renderEnhancedMarkdown && typeof window.renderEnhancedMarkdown === 'function') {
-            window.renderEnhancedMarkdown(content, textDiv);
+        // 检测是否包含音频链接（Hailuo-Speech-02 的响应）
+        const audioUrlMatch = content.match(/https?:\/\/[^\s]+\.(mp3|wav|ogg|m4a|aac)/i);
+        const isAudioGeneration = message.agent_name === 'Hailuo-Speech-02' || content.includes('Generated Audio') || audioUrlMatch;
+        
+        if (isAudioGeneration && audioUrlMatch) {
+            // 提取音频URL
+            const audioUrl = audioUrlMatch[0];
+            
+            // 移除URL，保留其他文本
+            const textWithoutUrl = content.replace(audioUrl, '').trim();
+            
+            // 渲染文本部分（如果有）
+            if (textWithoutUrl && window.renderEnhancedMarkdown) {
+                window.renderEnhancedMarkdown(textWithoutUrl, textDiv);
+            } else if (textWithoutUrl) {
+                textDiv.innerHTML = this.formatContent(textWithoutUrl, message.role);
+            }
+            
+            // 创建音频播放器
+            const audioPlayer = document.createElement('div');
+            audioPlayer.className = 'audio-player-container';
+            audioPlayer.innerHTML = `
+                <div class="audio-player">
+                    <div class="audio-icon">🎙️</div>
+                    <div class="audio-info">
+                        <div class="audio-title">生成的语音</div>
+                        <audio controls class="audio-element">
+                            <source src="${audioUrl}" type="audio/mpeg">
+                            您的浏览器不支持音频播放。
+                        </audio>
+                    </div>
+                    <a href="${audioUrl}" download class="audio-download" title="下载音频">
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>
+            `;
+            textDiv.appendChild(audioPlayer);
         } else {
-            // 降级为普通渲染
-            textDiv.innerHTML = this.formatContent(content, message.role);
+            // 正常渲染 Markdown
+            if (window.renderEnhancedMarkdown && typeof window.renderEnhancedMarkdown === 'function') {
+                window.renderEnhancedMarkdown(content, textDiv);
+            } else {
+                // 降级为普通渲染
+                textDiv.innerHTML = this.formatContent(content, message.role);
+            }
         }
         
         contentDiv.appendChild(textDiv);

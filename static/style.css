@@ -3106,6 +3106,111 @@ body {
     margin: 8px 0;
 }
 
+/* 音频播放器样式 */
+.audio-player-container {
+    margin: 16px 0;
+}
+
+.audio-player {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(14, 165, 233, 0.1) 100%);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(8px);
+    transition: all var(--transition-normal);
+}
+
+.audio-player:hover {
+    border-color: rgba(6, 182, 212, 0.5);
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+    transform: translateY(-2px);
+}
+
+.audio-icon {
+    font-size: 32px;
+    min-width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #06B6D4 0%, #0EA5E9 100%);
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+.audio-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.audio-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.audio-element {
+    width: 100%;
+    height: 36px;
+    border-radius: var(--radius-md);
+    outline: none;
+}
+
+.audio-element::-webkit-media-controls-panel {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+}
+
+.audio-download {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba(6, 182, 212, 0.2);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: 50%;
+    color: #06B6D4;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+}
+
+.audio-download:hover {
+    background: rgba(6, 182, 212, 0.3);
+    border-color: #06B6D4;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+.audio-download i {
+    font-size: 16px;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .audio-player {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .audio-icon {
+        font-size: 24px;
+        min-width: 40px;
+        height: 40px;
+    }
+    
+    .audio-download {
+        align-self: flex-end;
+    }
+}
+
 .user-message .message-text code {
     background: rgba(255, 255, 255, 0.2);
     color: #ffffff;
