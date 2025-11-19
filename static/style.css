@@ -3677,3 +3677,89 @@ body {
         opacity: 1;
     }
 }
+
+/* 视频播放器样式 */
+.video-player-container {
+    margin: 16px 0;
+    width: 100%;
+}
+
+.video-player {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.video-player:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.video-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    color: white;
+}
+
+.video-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.video-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.video-download {
+    color: white;
+    text-decoration: none;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.video-download:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.video-element {
+    width: 100%;
+    max-height: 500px;
+    border-radius: 8px;
+    background: #000;
+    outline: none;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .video-player {
+        padding: 12px;
+    }
+    
+    .video-header {
+        gap: 8px;
+    }
+    
+    .video-icon {
+        font-size: 20px;
+    }
+    
+    .video-title {
+        font-size: 14px;
+    }
+    
+    .video-element {
+        max-height: 300px;
+    }
+}

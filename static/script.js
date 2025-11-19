@@ -991,13 +991,60 @@ class MultiAgentChat {
         // 过滤thinking内容并使用增强的Markdown渲染
         let content = this.filterThinkingContent(message.content);
         
-        // 检测是否包含音频链接（更通用的匹配）
-        // 匹配包含 audio 关键字的链接，或者以音频扩展名结尾的链接
+        // 检测视频链接
+        const videoUrlMatch = content.match(/(https?:\/\/[^\s]+(?:video)[^\s]*)|https?:\/\/[^\s]+\.(mp4|mov|avi|webm|mkv)/i);
+        const isVideoGeneration = message.agent_name === 'Sora-2-Pro' || content.includes('Generated Video') || content.includes('Generating Video');
+        
+        // 检测音频链接
         const audioUrlMatch = content.match(/(https?:\/\/[^\s]+(?:audio|speech|sound|voice)[^\s]*)|https?:\/\/[^\s]+\.(mp3|wav|ogg|m4a|aac)/i);
         const isAudioGeneration = message.agent_name === 'Hailuo-Speech-02' || content.includes('Generated Audio') || content.includes('Generating Audio');
         
-        if (isAudioGeneration && audioUrlMatch) {
-            // 提取音频URL（可能包含 "Generated Audio!" 前缀）
+        // 优先处理视频
+        if (isVideoGeneration && videoUrlMatch) {
+            let videoUrl = videoUrlMatch[0];
+            
+            // 如果URL前面有 "Generated Video!" 等文本，也要提取
+            const fullMatch = content.match(/Generated\s+Video[!:：\s]*((https?:\/\/[^\s]+))/i);
+            if (fullMatch) {
+                videoUrl = fullMatch[1];
+            }
+            
+            // 移除URL和相关文本，保留其他内容
+            const textWithoutUrl = content
+                .replace(/Generated\s+Video[!:：\s]*/gi, '')
+                .replace(/Generating\s+Video[^)]*\)/gi, '')
+                .replace(videoUrl, '')
+                .trim();
+            
+            // 渲染文本部分（如果有）
+            if (textWithoutUrl && window.renderEnhancedMarkdown) {
+                window.renderEnhancedMarkdown(textWithoutUrl, textDiv);
+            } else if (textWithoutUrl) {
+                textDiv.innerHTML = this.formatContent(textWithoutUrl, message.role);
+            }
+            
+            // 创建视频播放器
+            const videoPlayer = document.createElement('div');
+            videoPlayer.className = 'video-player-container';
+            videoPlayer.innerHTML = `
+                <div class="video-player">
+                    <div class="video-header">
+                        <div class="video-icon">🎬</div>
+                        <div class="video-title">生成的视频</div>
+                        <a href="${videoUrl}" download="sora-video.mp4" class="video-download" title="下载视频">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </div>
+                    <video controls class="video-element" preload="metadata">
+                        <source src="${videoUrl}" type="video/mp4">
+                        您的浏览器不支持视频播放。
+                    </video>
+                </div>
+            `;
+            textDiv.appendChild(videoPlayer);
+        }
+        // 处理音频
+        else if (isAudioGeneration && audioUrlMatch) {
             let audioUrl = audioUrlMatch[0];
             
             // 如果URL前面有 "Generated Audio!" 等文本，也要提取
@@ -1510,8 +1557,8 @@ class MultiAgentChat {
                         window.renderEnhancedMarkdown(accumulatedContent, messageTextDiv);
                     }
                     
-                    // 检测并渲染音频播放器
-                    this.renderAudioPlayer(messageTextDiv, accumulatedContent);
+                    // 检测并渲染媒体播放器（音频/视频）
+                    this.renderMediaPlayer(messageTextDiv, accumulatedContent);
                     
                     // 刷新会话列表（重要！确保新会话出现在左侧）
                     await this.loadSessions();
@@ -2400,14 +2447,67 @@ class MultiAgentChat {
         }
     }
 
-    // 检测并渲染音频播放器（用于流式输出完成后）
-    renderAudioPlayer(messageTextDiv, content) {
-        // 检测是否包含音频链接
+    // 检测并渲染媒体播放器（音频/视频，用于流式输出完成后）
+    renderMediaPlayer(messageTextDiv, content) {
+        // 检测视频链接
+        const videoUrlMatch = content.match(/(https?:\/\/[^\s]+(?:video)[^\s]*)|https?:\/\/[^\s]+\.(mp4|mov|avi|webm|mkv)/i);
+        const isVideoGeneration = content.includes('Generated Video') || content.includes('Generating Video');
+        
+        // 检测音频链接
         const audioUrlMatch = content.match(/(https?:\/\/[^\s]+(?:audio|speech|sound|voice)[^\s]*)|https?:\/\/[^\s]+\.(mp3|wav|ogg|m4a|aac)/i);
         const isAudioGeneration = content.includes('Generated Audio') || content.includes('Generating Audio');
         
-        if (isAudioGeneration && audioUrlMatch) {
-            // 提取音频URL
+        // 优先处理视频
+        if (isVideoGeneration && videoUrlMatch) {
+            let videoUrl = videoUrlMatch[0];
+            
+            // 如果URL前面有 "Generated Video!" 等文本，也要提取
+            const fullMatch = content.match(/Generated\s+Video[!:：\s]*((https?:\/\/[^\s]+))/i);
+            if (fullMatch) {
+                videoUrl = fullMatch[1];
+            }
+            
+            // 移除URL和相关文本，保留其他内容
+            const textWithoutUrl = content
+                .replace(/Generated\s+Video[!:：\s]*/gi, '')
+                .replace(/Generating\s+Video[^)]*\)/gi, '')
+                .replace(videoUrl, '')
+                .trim();
+            
+            // 清空并重新渲染
+            messageTextDiv.innerHTML = '';
+            
+            // 渲染文本部分（如果有）
+            if (textWithoutUrl && window.renderEnhancedMarkdown) {
+                window.renderEnhancedMarkdown(textWithoutUrl, messageTextDiv);
+            } else if (textWithoutUrl) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = this.formatContent(textWithoutUrl, 'agent');
+                messageTextDiv.appendChild(tempDiv);
+            }
+            
+            // 创建视频播放器
+            const videoPlayer = document.createElement('div');
+            videoPlayer.className = 'video-player-container';
+            videoPlayer.innerHTML = `
+                <div class="video-player">
+                    <div class="video-header">
+                        <div class="video-icon">🎬</div>
+                        <div class="video-title">生成的视频</div>
+                        <a href="${videoUrl}" download="sora-video.mp4" class="video-download" title="下载视频">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </div>
+                    <video controls class="video-element" preload="metadata">
+                        <source src="${videoUrl}" type="video/mp4">
+                        您的浏览器不支持视频播放。
+                    </video>
+                </div>
+            `;
+            messageTextDiv.appendChild(videoPlayer);
+        }
+        // 处理音频
+        else if (isAudioGeneration && audioUrlMatch) {
             let audioUrl = audioUrlMatch[0];
             
             // 如果URL前面有 "Generated Audio!" 等文本，也要提取
