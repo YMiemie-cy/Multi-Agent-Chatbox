@@ -644,6 +644,9 @@ async def chat_stream(request: Request, chat_request: ChatRequest):
         # 添加当前用户消息
         has_images = any(f.get("image_base64") for f in processed_files)
         
+        # 清理消息中的@提及（用于实际发送给AI）
+        cleaned_message = clean_message_mentions(chat_request.message)
+        
         if has_images:
             content_parts = [{"type": "text", "text": cleaned_message}]
             for file_info in processed_files:
@@ -826,6 +829,9 @@ async def chat_stream(request: Request, chat_request: ChatRequest):
         
         # 添加当前用户消息
         has_images = any(f.get("image_base64") for f in processed_files)
+        
+        # 清理消息中的@提及（用于实际发送给AI）
+        cleaned_message = clean_message_mentions(chat_request.message)
         
         if has_images:
             content_parts = [{"type": "text", "text": cleaned_message}]
