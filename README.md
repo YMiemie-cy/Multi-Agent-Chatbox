@@ -223,6 +223,11 @@ RATE_LIMIT_WINDOW=60  # 秒
 - GPT-5
 - Gemini-3.0-Pro
 
+**生成模型**：
+- 🎨 **Nano-Banana**: 专业图像生成模型
+- 🎬 **Sora-2-Pro**: OpenAI视频生成模型
+- 🎙️ **Hailuo-Speech-02**: 海螺AI语音生成模型
+
 **功能**：
 - 图像上传（PNG、JPG、JPEG，最大10MB）
 - 自动压缩优化（最大边1024px）

@@ -420,7 +420,9 @@ class MultiAgentChat {
             'GPT5': 'OpenAI最新旗舰模型，具备统一路由系统架构',
             'GPT4o': 'GPT-4o AI助手，提供通用智能支持',
             'Gemini-3.0-Pro': 'Google最新旗舰AI模型，强大的多模态理解与推理能力',
-            'Nano-Banana': '专业图像生成模型，擅长创意与细节'
+            'Nano-Banana': '专业图像生成模型，擅长创意与细节',
+            'Sora-2-Pro': 'OpenAI视频生成模型，创造流畅自然的高质量视频',
+            'Hailuo-Speech-02': '海螺AI语音生成模型，自然流畅的语音合成'
         };
         return descriptions[agentName] || '专业顾问';
     }
@@ -430,9 +432,9 @@ class MultiAgentChat {
         const agentsSelection = document.getElementById('agents-selection');
         agentsSelection.innerHTML = '';
 
-        // 排除通用助手GPT5、GPT4o和Gemini-3.0-Pro，只显示专业Agent用于讨论
+        // 排除通用助手和生成模型，只显示专业Agent用于讨论
         const discussionAgents = Object.values(this.agents).filter(agent => 
-            !['GPT5', 'GPT4o', 'Gemini-3.0-Pro', 'Web搜索专家'].includes(agent.name)
+            !['GPT5', 'GPT4o', 'Gemini-3.0-Pro', 'Web搜索专家', 'Nano-Banana', 'Sora-2-Pro', 'Hailuo-Speech-02'].includes(agent.name)
         );
 
         discussionAgents.forEach(agent => {
