@@ -698,6 +698,203 @@ async def chat_stream(request: Request, chat_request: ChatRequest):
         app_logger.error(f"聊天处理失败: {e}")
         raise HTTPException(status_code=500, detail="处理聊天时发生错误")
 
+@app.post("/api/chat/stream")
+@limiter.limit("30/minute")
+async def chat_stream(request: Request, chat_request: ChatRequest):
+    """处理聊天请求（流式输出）"""
+    try:
+        # 基本的输入验证
+        if not chat_request.message.strip():
+            raise HTTPException(status_code=400, detail="消息不能为空")
+        
+        if len(chat_request.message) > 10000:
+            raise HTTPException(status_code=400, detail="消息过长，请控制在10000字符以内")
+        
+        # 获取或创建会话
+        sessions_data = await db_manager.load_sessions()
+        session_data = None
+        
+        if chat_request.session_id:
+            session_data = await db_manager.get_session_by_id(chat_request.session_id)
+            if not session_data:
+                raise HTTPException(status_code=404, detail="会话不存在")
+        else:
+            # 创建新会话
+            session_id = str(uuid.uuid4())
+            session_data = {
+                "id": session_id,
+                "title": chat_request.message[:30] + "..." if len(chat_request.message) > 30 else chat_request.message,
+                "messages": [],
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat()
+            }
+        
+        # 处理上传的文件
+        processed_files = []
+        attachments_info = []
+        
+        if chat_request.file_ids:
+            from utils.file_processor import process_uploaded_file
+            
+            for file_id in chat_request.file_ids:
+                for filename in os.listdir(config.UPLOAD_DIR):
+                    if filename.startswith(file_id):
+                        file_path = os.path.join(config.UPLOAD_DIR, filename)
+                        file_ext = os.path.splitext(filename)[1][1:]
+                        file_info = await process_uploaded_file(file_path, file_ext, filename)
+                        processed_files.append(file_info)
+                        
+                        file_stat = os.stat(file_path)
+                        attachments_info.append({
+                            "file_id": file_id,
+                            "filename": filename,
+                            "file_type": file_ext,
+                            "file_size": file_stat.st_size
+                        })
+                        break
+        
+        # 添加用户消息
+        user_message = {
+            "id": str(uuid.uuid4()),
+            "role": "user",
+            "content": chat_request.message,
+            "timestamp": datetime.now().isoformat(),
+            "attachments": attachments_info if attachments_info else None
+        }
+        session_data["messages"].append(user_message)
+        
+        # 确定使用的Agent
+        selected_agent = AGENTS.get(chat_request.agent_name, AGENTS["GPT5"])
+        
+        # 构建消息上下文（与非流式版本相同）
+        memories = await load_memories()
+        memory_context = ""
+        if memories:
+            important_memories = [m for m in memories if m.get('importance', 3) >= 3]
+            important_memories.sort(key=lambda m: m.get('importance', 3), reverse=True)
+            top_memories = important_memories[:10]
+            
+            if top_memories:
+                memory_items = []
+                for mem in top_memories:
+                    category = getCategoryLabel(mem.get('category', 'general'))
+                    memory_items.append(f"[{category}] {mem['title']}: {mem['content']}")
+                memory_context = "\n\n【长期记忆】\n以下是用户的长期记忆信息，请在回答时适当参考：\n" + "\n".join(f"{i+1}. {item}" for i, item in enumerate(memory_items))
+        
+        # 处理文件内容
+        file_context = ""
+        if processed_files:
+            from utils.file_processor import format_file_content_for_prompt
+            file_context = format_file_content_for_prompt(processed_files)
+        
+        # 构建系统提示
+        system_prompt = selected_agent["system_prompt"]
+        if memory_context:
+            system_prompt += memory_context
+        
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # 添加最近的对话历史
+        recent_messages = session_data["messages"][-20:]
+        for msg in recent_messages[:-1]:
+            if msg["role"] == "user":
+                messages.append({"role": "user", "content": msg["content"]})
+            elif msg["role"] in ["assistant", "agent"]:
+                messages.append({"role": "assistant", "content": msg["content"]})
+        
+        # 添加当前用户消息
+        has_images = any(f.get("image_base64") for f in processed_files)
+        
+        if has_images:
+            content_parts = [{"type": "text", "text": chat_request.message}]
+            for file_info in processed_files:
+                if file_info.get("image_base64"):
+                    image_data = file_info["image_base64"]
+                    file_ext = file_info.get("file_type", "png")
+                    mime_type = f"image/{file_ext}"
+                    content_parts.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime_type};base64,{image_data}"}
+                    })
+                elif file_info.get("content_text"):
+                    text = file_info["content_text"][:5000]
+                    filename = file_info.get("filename", "未知文件")
+                    content_parts[0]["text"] += f"\n\n📄 文档: {filename}\n```\n{text}\n```"
+            messages.append({"role": "user", "content": content_parts})
+        else:
+            current_user_message = chat_request.message
+            if file_context:
+                current_user_message += file_context
+            messages.append({"role": "user", "content": current_user_message})
+        
+        # 流式生成器函数
+        async def generate_stream():
+            accumulated_content = ""
+            try:
+                # 发送初始元数据
+                import json
+                metadata = {
+                    "type": "metadata",
+                    "session_id": session_data["id"],
+                    "agent_name": selected_agent["name"]
+                }
+                yield f"data: {json.dumps(metadata, ensure_ascii=False)}\n\n"
+                
+                # 流式调用API
+                async for chunk in poe_client.stream_chat_completion(
+                    model=selected_agent["model"],
+                    messages=messages
+                ):
+                    accumulated_content += chunk
+                    chunk_data = {
+                        "type": "content",
+                        "content": chunk
+                    }
+                    yield f"data: {json.dumps(chunk_data, ensure_ascii=False)}\n\n"
+                
+                # 保存完整的Agent回复到会话
+                agent_message = {
+                    "id": str(uuid.uuid4()),
+                    "role": "agent",
+                    "content": accumulated_content,
+                    "agent_name": selected_agent["name"],
+                    "timestamp": datetime.now().isoformat()
+                }
+                session_data["messages"].append(agent_message)
+                session_data["updated_at"] = datetime.now().isoformat()
+                await db_manager.update_session(session_data)
+                
+                # 发送完成信号
+                done_data = {
+                    "type": "done",
+                    "message_id": agent_message["id"]
+                }
+                yield f"data: {json.dumps(done_data, ensure_ascii=False)}\n\n"
+                
+            except Exception as e:
+                app_logger.error(f"流式生成失败: {e}")
+                error_data = {
+                    "type": "error",
+                    "error": str(e)
+                }
+                yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+        
+        return StreamingResponse(
+            generate_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        app_logger.error(f"流式聊天处理失败: {e}")
+        raise HTTPException(status_code=500, detail="处理聊天时发生错误")
+
 @app.delete("/api/sessions/{session_id}")
 @limiter.limit("30/minute")
 async def delete_session(request: Request, session_id: str):

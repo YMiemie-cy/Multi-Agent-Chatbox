@@ -47,6 +47,39 @@ class EnhancedPoeClient:
         
         self._request_count += 1
     
+    async def stream_chat_completion(
+        self,
+        model: str,
+        messages: List[Dict],
+        max_tokens: int = None,
+        temperature: float = None,
+        **kwargs
+    ):
+        """流式聊天完成API调用"""
+        try:
+            self._check_rate_limit()
+            
+            logger.info(f"🔍 准备流式调用API: {model}")
+            
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=max_tokens or config.DEFAULT_MAX_TOKENS,
+                temperature=temperature or config.DEFAULT_TEMPERATURE,
+                stream=True,
+                **kwargs
+            )
+            
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+            
+            logger.info(f"✅ 流式API调用完成: {model}")
+            
+        except Exception as e:
+            logger.error(f"流式调用失败: {e}")
+            raise APIError(f"流式请求失败: {e}")
+
     @retry(
         stop=stop_after_attempt(config.MAX_RETRIES),
         wait=wait_exponential(multiplier=1, min=1, max=10),

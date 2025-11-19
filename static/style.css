@@ -3045,6 +3045,67 @@ body {
     color: inherit;
 }
 
+/* 代码复制按钮 */
+.code-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.code-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.code-copy-btn.copied {
+    background: var(--success-color);
+    border-color: var(--success-color);
+    color: white;
+}
+
+/* Mermaid 图表样式 */
+.mermaid {
+    background: var(--background-secondary);
+    padding: 20px;
+    border-radius: var(--radius-md);
+    margin: 16px 0;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+/* KaTeX 数学公式样式 */
+.katex-display {
+    margin: 16px 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.katex {
+    font-size: 1.1em;
+}
+
+/* 错误消息样式 */
+.error-message {
+    padding: 12px 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--danger-color);
+    border-radius: var(--radius-md);
+    color: var(--danger-color);
+    margin: 8px 0;
+}
+
 .user-message .message-text code {
     background: rgba(255, 255, 255, 0.2);
     color: #ffffff;

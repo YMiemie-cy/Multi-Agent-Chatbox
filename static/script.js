@@ -930,40 +930,112 @@ class MultiAgentChat {
     }
 
     addMessageToUI(message, isSystemMessage = false) {
-        const container = document.getElementById('messages-container');
-        const messageElement = document.createElement('div');
-        messageElement.className = `message ${message.role}`;
+        const messagesContainer = document.getElementById('messages-container');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${message.role}`;
+        messageDiv.dataset.messageId = message.id;
 
-        // 如果是搜索系统消息，添加特殊样式
-        if (isSystemMessage && message.role === 'system' && message.content.includes('🔍')) {
-            messageElement.classList.add('search-notice');
-            
-            // 如果是两步处理模式，添加特殊样式
-            if (message.processing_type === 'two_step') {
-                messageElement.classList.add('two-step');
+        // 创建头像
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message-avatar';
+        
+        if (message.role === 'user') {
+            avatarDiv.textContent = '我';
+            avatarDiv.style.background = 'linear-gradient(135deg, #52525b 0%, #3f3f46 100%)';
+        } else if (isSystemMessage) {
+            avatarDiv.innerHTML = '<i class="fas fa-info-circle"></i>';
+            avatarDiv.style.background = 'linear-gradient(135deg, #06B6D4 0%, #0891B2 100%)';
+        } else {
+            const agent = this.agents[message.agent_name];
+            if (agent) {
+                avatarDiv.textContent = agent.name.charAt(0);
+                avatarDiv.style.background = agent.color;
+            } else {
+                avatarDiv.textContent = 'AI';
+                avatarDiv.style.background = 'linear-gradient(135deg, #9c81f2 0%, #7c3aed 100%)';
             }
         }
 
-        // 为Agent消息添加data-agent属性以支持CSS样式
-        if (message.agent_name) {
-            messageElement.setAttribute('data-agent', message.agent_name);
-        }
+        // 创建消息内容
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
 
-        const avatar = this.createAvatar(message);
-        const content = this.createMessageContent(message);
-
+        // 消息头部（Agent名称和时间）
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'message-header';
+        
+        const authorSpan = document.createElement('span');
+        authorSpan.className = 'message-author';
         if (message.role === 'user') {
-            messageElement.appendChild(content);
-            messageElement.appendChild(avatar);
+            authorSpan.textContent = '我';
+        } else if (isSystemMessage) {
+            authorSpan.textContent = '系统通知';
         } else {
-            messageElement.appendChild(avatar);
-            messageElement.appendChild(content);
+            authorSpan.textContent = message.agent_name || 'AI';
+        }
+        headerDiv.appendChild(authorSpan);
+
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'message-time';
+        timeSpan.textContent = this.formatTime(message.timestamp);
+        headerDiv.appendChild(timeSpan);
+
+        contentDiv.appendChild(headerDiv);
+
+        // 消息文本
+        const textDiv = document.createElement('div');
+        textDiv.className = 'message-text';
+        
+        // 过滤thinking内容并使用增强的Markdown渲染
+        let content = this.filterThinkingContent(message.content);
+        
+        // 使用增强的 Markdown 渲染（支持代码高亮、数学公式、Mermaid）
+        if (window.renderEnhancedMarkdown && typeof window.renderEnhancedMarkdown === 'function') {
+            window.renderEnhancedMarkdown(content, textDiv);
+        } else {
+            // 降级为普通渲染
+            textDiv.innerHTML = this.formatContent(content, message.role);
+        }
+        
+        contentDiv.appendChild(textDiv);
+
+        // 添加附件显示（如果有）
+        if (message.attachments && message.attachments.length > 0) {
+            const attachmentsDiv = document.createElement('div');
+            attachmentsDiv.className = 'message-attachments';
+            
+            message.attachments.forEach(file => {
+                const fileType = file.file_type || 'unknown';
+                const isImage = ['png', 'jpg', 'jpeg'].includes(fileType.toLowerCase());
+                
+                const attachmentItem = document.createElement('div');
+                attachmentItem.className = 'message-attachment-item';
+                
+                attachmentItem.innerHTML = `
+                    <div class="message-attachment-icon ${fileType.toLowerCase()}">
+                        ${isImage ? '📷' : fileType.toUpperCase()}
+                    </div>
+                    <div class="message-attachment-info">
+                        <div class="message-attachment-name">${file.filename}</div>
+                        <div class="message-attachment-size">${this.formatFileSize(file.file_size)}</div>
+                    </div>
+                `;
+                
+                attachmentsDiv.appendChild(attachmentItem);
+            });
+            
+            contentDiv.appendChild(attachmentsDiv);
         }
 
-        container.appendChild(messageElement);
+        // 组装消息
+        messageDiv.appendChild(avatarDiv);
+        messageDiv.appendChild(contentDiv);
+
+        // 添加到容器
+        messagesContainer.appendChild(messageDiv);
         
         // 为消息中的图片添加点击事件（放大查看）
-        const images = messageElement.querySelectorAll('.message-text img');
+        const images = messageDiv.querySelectorAll('.message-text img');
         images.forEach(img => {
             img.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -982,7 +1054,7 @@ class MultiAgentChat {
             });
         });
         
-        container.scrollTop = container.scrollHeight;
+        this.scrollToBottom();
     }
 
     createAvatar(message) {
@@ -1264,7 +1336,7 @@ class MultiAgentChat {
         document.getElementById('send-btn').disabled = true;
 
         try {
-            // 检测@提及的Agent（支持多个）
+            // 检测@提及的Agent
             let mentionedAgents = [];
             for (const agentName of Object.keys(this.agents)) {
                 if (message.includes(`@${agentName}`)) {
@@ -1275,23 +1347,18 @@ class MultiAgentChat {
             // 确定要使用的Agent
             let selectedAgent = null;
             if (mentionedAgents.length > 0) {
-                // 如果有@提及，使用第一个Agent作为显示的思考提示
-                selectedAgent = mentionedAgents[0];
-                // 多Agent情况下，不传agent_name让后端自己解析
                 if (mentionedAgents.length === 1) {
                     selectedAgent = mentionedAgents[0];
                 } else {
-                    selectedAgent = null; // 多Agent时不指定特定Agent
+                    selectedAgent = null;
                 }
             } else if (this.selectedAgent) {
-            // 如果没有@提及但有选中的Agent，使用选中的Agent
                 selectedAgent = this.selectedAgent;
             } else {
-                // 如果没有指定Agent，让后端智能判断（不设置默认值）
                 selectedAgent = null;
             }
 
-            // 添加用户消息到UI (包含附件信息)
+            // 添加用户消息到UI
             const userMessage = {
                 id: Date.now().toString(),
                 role: 'user',
@@ -1301,12 +1368,12 @@ class MultiAgentChat {
             };
             this.addMessageToUI(userMessage);
 
-            // 先准备发送数据（在清空文件列表之前！）
+            // 准备发送数据
             const sendData = {
                 message: message,
-                agent_name: selectedAgent, // 单Agent时指定，多Agent时为null让后端解析
+                agent_name: selectedAgent,
                 session_id: this.currentSessionId,
-                file_ids: this.uploadedFiles.map(f => f.file_id) // 添加文件ID列表
+                file_ids: this.uploadedFiles.map(f => f.file_id)
             };
             
             // 清空输入框和文件列表
@@ -1315,10 +1382,9 @@ class MultiAgentChat {
             this.uploadedFiles = [];
             this.renderFileAttachments();
             
-            // 保存用户消息以便讨论功能使用
             this.lastUserMessage = message;
 
-            // 显示AI思考动画（多Agent时显示第一个Agent或GPT5）
+            // 显示AI思考动画
             const displayAgent = mentionedAgents.length > 0 ? mentionedAgents[0] : (selectedAgent || 'GPT5');
             this.showTypingIndicator(displayAgent);
 
@@ -1327,16 +1393,25 @@ class MultiAgentChat {
             if (welcomeMessage) {
                 welcomeMessage.style.display = 'none';
             }
-            
-            console.log('💬 准备发送消息:', {
-                message: message.substring(0, 50) + '...',
-                agent_name: selectedAgent,
-                session_id: this.currentSessionId,
-                uploaded_files_count: sendData.file_ids.length,
-                file_ids: sendData.file_ids
-            });
 
-            const response = await fetch('/api/chat', {
+            // 使用流式输出
+            await this.sendMessageStream(sendData, displayAgent);
+
+        } catch (error) {
+            console.error('发送消息失败:', error);
+            this.hideTypingIndicator();
+            alert('发送消息失败，请重试');
+        } finally {
+            // 恢复输入
+            input.disabled = false;
+            document.getElementById('send-btn').disabled = false;
+            input.focus();
+        }
+    }
+
+    async sendMessageStream(sendData, agentName) {
+        try {
+            const response = await fetch('/api/chat/stream', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1348,61 +1423,98 @@ class MultiAgentChat {
                 throw new Error(`HTTP ${response.status}`);
             }
 
-            const data = await response.json();
-            
-            // 更新当前会话ID
-            this.currentSessionId = data.session_id;
-
-            // 检查是否使用了智能搜索
-            if (data.search_info && data.search_info.auto_triggered) {
-                const searchInfo = data.search_info;
-                console.log(`🔍 智能搜索被触发: ${searchInfo.reason}`);
-                console.log(`🎯 处理方式: ${searchInfo.processing_type} (${searchInfo.complexity})`);
-                
-                // 根据处理类型显示不同的提示消息
-                let searchContent;
-                if (searchInfo.processing_type === 'two_step') {
-                    searchContent = `🧠 智能分析模式\n🔍 正在搜索最新信息...\n📊 将由${searchInfo.suggested_agent}进行专业分析\n\n处理原因：${searchInfo.analysis_reason}`;
-                } else {
-                    searchContent = `⚡ 快速查询模式\n🔍 检测到需要最新信息，正在为您搜索...\n原因：${searchInfo.reason}`;
-                }
-                
-                const searchNotice = {
-                    id: Date.now().toString() + '_search',
-                    role: 'system',
-                    content: searchContent,
-                    agent_name: 'System',
-                    timestamp: new Date().toISOString(),
-                    processing_type: searchInfo.processing_type  // 传递处理类型信息
-                };
-                this.addMessageToUI(searchNotice, true); // true表示是系统消息
-            }
-
-            // 处理AI回复到UI（支持多Agent响应）
-            if (data.messages && data.count > 1) {
-                // 多个Agent的情况 - 按顺序显示思考动画和回复
-                console.log(`收到${data.count}个Agent的回复: ${data.agents.join(', ')}`);
-                // 不在这里隐藏思考动画，让showMultiAgentResponses来管理
-                this.showMultiAgentResponses(data.messages, data.agents);
-            } else {
-                // 单个Agent的情况（保持原有逻辑）
+            // 隐藏思考动画
             this.hideTypingIndicator();
-            this.addMessageToUI(data.message);
-            }
 
-            // 刷新会话列表
-            await this.loadSessions();
-            this.renderSessions();
+            // 创建流式消息容器
+            const messageId = `stream-${Date.now()}`;
+            const streamMessage = {
+                id: messageId,
+                role: 'agent',
+                agent_name: agentName,
+                content: '',
+                timestamp: new Date().toISOString()
+            };
+
+            // 添加空消息到UI（将会被流式更新）
+            this.addMessageToUI(streamMessage);
+            
+            // 获取消息元素
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            const messageTextDiv = messageElement.querySelector('.message-text');
+
+            // 读取流
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let accumulatedContent = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // 保留不完整的行
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            
+                            if (data.type === 'metadata') {
+                                // 更新会话ID和Agent名称
+                                this.currentSessionId = data.session_id;
+                                streamMessage.agent_name = data.agent_name;
+                                
+                                // 更新头像
+                                const agent = this.agents[data.agent_name];
+                                if (agent) {
+                                    const avatarDiv = messageElement.querySelector('.message-avatar');
+                                    avatarDiv.textContent = agent.name.charAt(0);
+                                    avatarDiv.style.background = agent.color;
+                                    
+                                    const authorSpan = messageElement.querySelector('.message-author');
+                                    authorSpan.textContent = agent.name;
+                                }
+                            } else if (data.type === 'content') {
+                                // 累积内容并实时渲染
+                                accumulatedContent += data.content;
+                                streamMessage.content = accumulatedContent;
+                                
+                                // 使用流式 Markdown 渲染（轻量级）
+                                if (window.renderStreamingMarkdown) {
+                                    window.renderStreamingMarkdown(accumulatedContent, messageTextDiv);
+                                } else {
+                                    messageTextDiv.textContent = accumulatedContent;
+                                }
+                                
+                                // 保持滚动到底部
+                                this.scrollToBottom();
+                            } else if (data.type === 'done') {
+                                // 完成时使用完整的增强渲染
+                                if (window.renderEnhancedMarkdown) {
+                                    window.renderEnhancedMarkdown(accumulatedContent, messageTextDiv);
+                                }
+                                
+                                // 刷新会话列表
+                                await this.loadSessions();
+                                this.renderSessions();
+                            } else if (data.type === 'error') {
+                                console.error('流式输出错误:', data.error);
+                                messageTextDiv.innerHTML = `<div class="error-message">❌ 生成失败: ${data.error}</div>`;
+                            }
+                        } catch (e) {
+                            console.error('解析SSE数据失败:', e, line);
+                        }
+                    }
+                }
+            }
 
         } catch (error) {
-            console.error('发送消息失败:', error);
-            this.hideTypingIndicator();
-            alert('发送消息失败，请重试');
-        } finally {
-            // 恢复输入
-            input.disabled = false;
-            document.getElementById('send-btn').disabled = false;
-            input.focus();
+            console.error('流式请求失败:', error);
+            throw error;
         }
     }
 
