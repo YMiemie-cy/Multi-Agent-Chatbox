@@ -1452,7 +1452,17 @@ class MultiAgentChat {
             while (true) {
                 const { done, value } = await reader.read();
                 
-                if (done) break;
+                if (done) {
+                    // 流结束，完成最终渲染
+                    if (accumulatedContent && window.renderEnhancedMarkdown) {
+                        window.renderEnhancedMarkdown(accumulatedContent, messageTextDiv);
+                    }
+                    
+                    // 刷新会话列表（重要！确保新会话出现在左侧）
+                    await this.loadSessions();
+                    this.renderSessions();
+                    break;
+                }
 
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n');
@@ -1476,6 +1486,12 @@ class MultiAgentChat {
                             this.currentSessionId = data.session_id;
                             const agentName = data.agent_name || data.agent;
                             streamMessage.agent_name = agentName;
+                            
+                            // 立即刷新会话列表（新会话刚创建）
+                            if (data.session_id) {
+                                await this.loadSessions();
+                                this.renderSessions();
+                            }
                             
                             // 更新头像
                             const agent = this.agents[agentName];
