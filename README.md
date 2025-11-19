@@ -211,7 +211,7 @@ RATE_LIMIT_WINDOW=60  # 秒
 
 - **Claude系列**: Claude-Sonnet-4, Claude-3.7-Sonnet
 - **GPT系列**: GPT-4o, GPT-5, GPT-3.5-Turbo
-- **Gemini系列**: Gemini-2.5-Pro
+- **Gemini系列**: Gemini-3.0-Pro
 - **专业角色**: 产品经理、技术总监、市场专家、UX设计师、商业分析师
 
 ### 🖼️ 图像处理功能
@@ -221,7 +221,7 @@ RATE_LIMIT_WINDOW=60  # 秒
 - Claude-3.7-Sonnet
 - GPT-4o
 - GPT-5
-- Gemini-2.5-Pro
+- Gemini-3.0-Pro
 
 **功能**：
 - 图像上传（PNG、JPG、JPEG，最大10MB）

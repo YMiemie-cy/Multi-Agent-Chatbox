@@ -17,7 +17,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -117,7 +117,7 @@ AGENTS = {
     },
     "市场专家": {
         "name": "市场专家",
-        "model": "Gemini-2.5-Pro",
+        "model": "Gemini-3.0-Pro",
         "system_prompt": "你是一位资深的市场营销专家，拥有15年以上的市场策略和品牌推广经验。请从市场营销角度提供具体、可执行的专业建议和策略方案。",
         "color": "#DC2626"
     },
@@ -145,10 +145,10 @@ AGENTS = {
         "system_prompt": "你是GPT-4o，一个先进的AI助手，能够帮助用户解答各种问题，提供准确、有用和富有洞察力的回答。",
         "color": "#10B981"
     },
-    "Gemini-2.5-Pro": {
-        "name": "Gemini-2.5-Pro",
-        "model": "Gemini-2.5-Pro",
-        "system_prompt": "你是Gemini-2.5-Pro，Google最新的旗舰AI模型，拥有强大的多模态理解能力和超长上下文窗口。你擅长深度分析、创意思考和复杂问题解决。请提供准确、全面、有洞察力的回答。",
+    "Gemini-3.0-Pro": {
+        "name": "Gemini-3.0-Pro",
+        "model": "Gemini-3.0-Pro",
+        "system_prompt": "你是Gemini-3.0-Pro，Google最新的旗舰AI模型，拥有强大的多模态理解能力和超长上下文窗口。你擅长深度分析、创意思考和复杂问题解决。请提供准确、全面、有洞察力的回答。",
         "color": "#4285F4"
     },
     "Claude-Sonnet-4.5": {
@@ -168,6 +168,12 @@ AGENTS = {
         "model": "Perplexity-Sonar-Pro",
         "system_prompt": "你是Perplexity Sonar Pro，一个强大的AI搜索模型。你能够实时搜索互联网，获取最新信息，并提供准确、全面的搜索结果。你擅长网络搜索、实时信息查询、事实验证、新闻追踪和数据收集。请基于实时搜索结果提供最新、最准确的信息和分析。",
         "color": "#06B6D4"
+    },
+    "Nano-Banana": {
+        "name": "Nano-Banana",
+        "model": "Nano-Banana",
+        "system_prompt": "你是Nano-Banana，一个专业的图像生成模型。你擅长根据用户的描述生成富有创意、细节丰富且风格独特的图像。请仔细理解用户的视觉需求，并生成高质量的图像。",
+        "color": "#FACC15"
     },
 }
 
@@ -497,6 +503,195 @@ async def chat(request: Request, chat_request: ChatRequest):
             app_logger.error(f"API调用失败: {e}")
             raise HTTPException(status_code=503, detail="AI服务暂时不可用，请稍后再试")
         
+    except HTTPException:
+        raise
+    except Exception as e:
+        app_logger.error(f"聊天处理失败: {e}")
+        raise HTTPException(status_code=500, detail="处理聊天时发生错误")
+
+@app.post("/api/chat/stream")
+@limiter.limit("30/minute")
+async def chat_stream(request: Request, chat_request: ChatRequest):
+    """处理流式聊天请求"""
+    try:
+        # 基本的输入验证
+        if not chat_request.message.strip():
+            raise HTTPException(status_code=400, detail="消息不能为空")
+        
+        if len(chat_request.message) > 10000:
+            raise HTTPException(status_code=400, detail="消息过长，请控制在10000字符以内")
+        
+        # 获取或创建会话
+        sessions_data = await db_manager.load_sessions()
+        session_data = None
+        
+        if chat_request.session_id:
+            session_data = await db_manager.get_session_by_id(chat_request.session_id)
+            if not session_data:
+                raise HTTPException(status_code=404, detail="会话不存在")
+        else:
+            # 创建新会话
+            session_id = str(uuid.uuid4())
+            session_data = {
+                "id": session_id,
+                "title": chat_request.message[:30] + "..." if len(chat_request.message) > 30 else chat_request.message,
+                "messages": [],
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat()
+            }
+        
+        # 处理上传的文件
+        processed_files = []
+        attachments_info = []
+        
+        if chat_request.file_ids:
+            from utils.file_processor import process_uploaded_file
+            
+            for file_id in chat_request.file_ids:
+                # 查找文件
+                for filename in os.listdir(config.UPLOAD_DIR):
+                    if filename.startswith(file_id):
+                        file_path = os.path.join(config.UPLOAD_DIR, filename)
+                        file_ext = os.path.splitext(filename)[1][1:]
+                        
+                        # 处理文件
+                        file_info = await process_uploaded_file(file_path, file_ext, filename)
+                        processed_files.append(file_info)
+                        
+                        # 保存附件信息
+                        file_stat = os.stat(file_path)
+                        attachments_info.append({
+                            "file_id": file_id,
+                            "filename": filename,
+                            "file_type": file_ext,
+                            "file_size": file_stat.st_size
+                        })
+                        break
+        
+        # 添加用户消息
+        user_message = {
+            "id": str(uuid.uuid4()),
+            "role": "user",
+            "content": chat_request.message,
+            "timestamp": datetime.now().isoformat(),
+            "attachments": attachments_info if attachments_info else None
+        }
+        session_data["messages"].append(user_message)
+        
+        # 确定使用的Agent
+        selected_agent = AGENTS.get(chat_request.agent_name, AGENTS["GPT5"])
+        
+        # 加载长期记忆并构建上下文
+        memories = await load_memories()
+        memory_context = ""
+        
+        if memories:
+            important_memories = [m for m in memories if m.get('importance', 3) >= 3]
+            important_memories.sort(key=lambda m: m.get('importance', 3), reverse=True)
+            top_memories = important_memories[:10]
+            
+            if top_memories:
+                memory_items = []
+                for mem in top_memories:
+                    category = getCategoryLabel(mem.get('category', 'general'))
+                    memory_items.append(f"[{category}] {mem['title']}: {mem['content']}")
+                
+                memory_context = "\n\n【长期记忆】\n以下是用户的长期记忆信息，请在回答时适当参考：\n" + "\n".join(f"{i+1}. {item}" for i, item in enumerate(memory_items))
+        
+        # 处理文件内容并添加到上下文
+        file_context = ""
+        if processed_files:
+            from utils.file_processor import format_file_content_for_prompt
+            file_context = format_file_content_for_prompt(processed_files)
+        
+        # 构建系统提示
+        system_prompt = selected_agent["system_prompt"]
+        if memory_context:
+            system_prompt += memory_context
+        
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # 添加最近的对话历史
+        recent_messages = session_data["messages"][-20:]
+        for msg in recent_messages[:-1]:
+            if msg["role"] == "user":
+                messages.append({"role": "user", "content": msg["content"]})
+            elif msg["role"] in ["assistant", "agent"]:
+                messages.append({"role": "assistant", "content": msg["content"]})
+        
+        # 添加当前用户消息
+        has_images = any(f.get("image_base64") for f in processed_files)
+        
+        if has_images:
+            content_parts = [{"type": "text", "text": chat_request.message}]
+            for file_info in processed_files:
+                if file_info.get("image_base64"):
+                    image_data = file_info["image_base64"]
+                    file_ext = file_info.get("file_type", "png")
+                    mime_type = f"image/{file_ext}"
+                    content_parts.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime_type};base64,{image_data}"}
+                    })
+                elif file_info.get("content_text"):
+                    text = file_info["content_text"]
+                    max_length = 5000
+                    if len(text) > max_length:
+                        text = text[:max_length] + f"\n\n[文档过长，已截取前{max_length}字符]"
+                    filename = file_info.get("filename", "未知文件")
+                    content_parts[0]["text"] += f"\n\n📄 文档: {filename}\n```\n{text}\n```"
+            messages.append({"role": "user", "content": content_parts})
+        else:
+            current_user_message = chat_request.message
+            if file_context:
+                current_user_message += file_context
+            messages.append({"role": "user", "content": current_user_message})
+
+        # 生成器函数
+        async def generate():
+            full_response = ""
+            agent_message_id = str(uuid.uuid4())
+            
+            # 发送会话ID和消息ID
+            yield json.dumps({
+                "type": "meta",
+                "session_id": session_data["id"],
+                "message_id": agent_message_id,
+                "agent": selected_agent["name"]
+            }) + "\n"
+            
+            try:
+                async for chunk in poe_client.stream_chat_completion(
+                    model=selected_agent["model"],
+                    messages=messages
+                ):
+                    full_response += chunk
+                    yield json.dumps({
+                        "type": "content",
+                        "content": chunk
+                    }) + "\n"
+                
+                # 保存完整的Agent回复
+                agent_message = {
+                    "id": agent_message_id,
+                    "role": "agent",
+                    "content": full_response,
+                    "agent_name": selected_agent["name"],
+                    "timestamp": datetime.now().isoformat()
+                }
+                session_data["messages"].append(agent_message)
+                session_data["updated_at"] = datetime.now().isoformat()
+                await db_manager.update_session(session_data)
+                
+            except Exception as e:
+                app_logger.error(f"流式生成失败: {e}")
+                yield json.dumps({
+                    "type": "error",
+                    "error": str(e)
+                }) + "\n"
+
+        return StreamingResponse(generate(), media_type="application/x-ndjson")
+
     except HTTPException:
         raise
     except Exception as e:

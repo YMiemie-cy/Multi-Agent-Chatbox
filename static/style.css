@@ -382,13 +382,32 @@ body {
 .header-title {
     flex: 1;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.app-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(156, 129, 242, 0.6));
 }
 
 .chat-header h1 {
     font-size: 28px;
     font-weight: 700;
     color: #ffffff;
-    margin-bottom: 6px;
+    margin-bottom: 0;
     letter-spacing: -0.02em;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
@@ -2651,6 +2670,16 @@ body {
     
     .header-title {
         text-align: center;
+    }
+
+    .logo-container {
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .app-logo {
+        width: 24px;
+        height: 24px;
     }
     
     .chat-header h1 {

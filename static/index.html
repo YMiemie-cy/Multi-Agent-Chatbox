@@ -6,12 +6,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2b2d37">
+    <link rel="icon" href="/static/logo.png" type="image/png">
     <title>Multi-Agent 智能助手</title>
     <link rel="stylesheet" href="/static/style.css?v=6.4">
+    <link rel="stylesheet" href="/static/style_drag.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Markdown渲染库 -->
     <script src="https://cdn.jsdelivr.net/npm/marked@9.1.2/marked.min.js"></script>
+    <!-- 代码高亮 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- 数学公式 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -41,7 +50,10 @@
                     <i class="fas fa-bars"></i>
                 </button>
                 <div class="header-title">
-                    <h1>Multi-Agent 智能助手</h1>
+                    <div class="logo-container">
+                        <img src="/static/logo.png" alt="Multi-Agent AI Logo" class="app-logo">
+                        <h1>Multi-Agent 智能助手</h1>
+                    </div>
                     <p>选择不同的专业角色来获得多维度的专业建议</p>
                 </div>
                 <button class="mobile-menu-btn" id="mobile-menu-right" title="专业团队">
