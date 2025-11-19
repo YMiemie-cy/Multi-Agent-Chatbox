@@ -2319,6 +2319,13 @@ class MultiAgentChat {
         return iconMap[fileType] || 'FILE';
     }
 
+    scrollToBottom() {
+        const container = document.getElementById('messages-container');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
     formatFileSize(bytes) {
         if (bytes === 0) return '0 B';
         const k = 1024;
