@@ -1558,7 +1558,7 @@ class MultiAgentChat {
                     }
                     
                     // 检测并渲染媒体播放器（音频/视频）
-                    this.renderMediaPlayer(messageTextDiv, accumulatedContent);
+                    this.renderMediaPlayer(messageTextDiv, accumulatedContent, streamMessage.agent_name);
                     
                     // 刷新会话列表（重要！确保新会话出现在左侧）
                     await this.loadSessions();
@@ -1625,8 +1625,8 @@ class MultiAgentChat {
                                 window.renderEnhancedMarkdown(accumulatedContent, messageTextDiv);
                             }
                             
-                            // 检测并渲染音频播放器
-                            this.renderAudioPlayer(messageTextDiv, accumulatedContent);
+                            // 检测并渲染媒体播放器（音频/视频）
+                            this.renderMediaPlayer(messageTextDiv, accumulatedContent, streamMessage.agent_name);
                             
                             // 刷新会话列表
                             await this.loadSessions();
@@ -2448,14 +2448,14 @@ class MultiAgentChat {
     }
 
     // 检测并渲染媒体播放器（音频/视频，用于流式输出完成后）
-    renderMediaPlayer(messageTextDiv, content) {
+    renderMediaPlayer(messageTextDiv, content, agentName = '') {
         // 检测视频链接
         const videoUrlMatch = content.match(/(https?:\/\/[^\s]+(?:video)[^\s]*)|https?:\/\/[^\s]+\.(mp4|mov|avi|webm|mkv)/i);
-        const isVideoGeneration = content.includes('Generated Video') || content.includes('Generating Video');
+        const isVideoGeneration = agentName === 'Sora-2-Pro' || content.includes('Generated Video') || content.includes('Generating Video');
         
         // 检测音频链接
         const audioUrlMatch = content.match(/(https?:\/\/[^\s]+(?:audio|speech|sound|voice)[^\s]*)|https?:\/\/[^\s]+\.(mp3|wav|ogg|m4a|aac)/i);
-        const isAudioGeneration = content.includes('Generated Audio') || content.includes('Generating Audio');
+        const isAudioGeneration = agentName === 'Hailuo-Speech-02' || content.includes('Generated Audio') || content.includes('Generating Audio');
         
         // 优先处理视频
         if (isVideoGeneration && videoUrlMatch) {
